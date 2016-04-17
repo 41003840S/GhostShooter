@@ -1,34 +1,48 @@
 /// <reference path="phaser/phaser.d.ts"/>
 /// <reference path="joypad/GamePad.ts"/>
 
+import Sprite = Phaser.Sprite;
+class ShooterGame extends Phaser.Game {
+
+    player:Player;
+    //player:Phaser.Sprite;
+    tilemap:Phaser.Tilemap;
+    background:Phaser.TilemapLayer;
+    walls:Phaser.TilemapLayer;
+
+    monsters:Phaser.Group;
+    explosions:Phaser.Group;
+    bullets:Phaser.Group;
+
+    scoreText:Phaser.Text;
+    livesText:Phaser.Text;
+    stateText:Phaser.Text;
+
+    cursors:Phaser.CursorKeys;
+    gamepad:Gamepads.GamePad;
+
+    PLAYER_ACCELERATION = 500;
+    //MONSTER_HEALTH = 3;
+    MONSTER_SPEED = 100;
+    //LIVES = 3;
+    BULLET_SPEED = 800;
+    FIRE_RATE = 200;
+    TEXT_MARGIN = 50;
+
+    nextFire = 0;
+    score = 0;
+
+    constructor() {
+        super(800, 480, Phaser.CANVAS, 'gameDiv');
+        this.state.add('main', mainState);
+        this.state.start('main');
+    }
+}
+
+
 class mainState extends Phaser.State {
-    private player:Phaser.Sprite;
-    private cursors:Phaser.CursorKeys;
-    private bullets:Phaser.Group;
-    private tilemap:Phaser.Tilemap;
-    private background:Phaser.TilemapLayer;
-    private walls:Phaser.TilemapLayer;
-    private monsters:Phaser.Group;
-    private explosions:Phaser.Group;
-    private scoreText:Phaser.Text;
-    private livesText:Phaser.Text;
-    private stateText:Phaser.Text;
-    private gamepad:Gamepads.GamePad;
 
-
-    private PLAYER_ACCELERATION = 500;
-    private PLAYER_MAX_SPEED = 400; // pixels/second
-    private PLAYER_DRAG = 600;
-    private MONSTER_SPEED = 100;
-    private BULLET_SPEED = 800;
-    private MONSTER_HEALTH = 3;
-    private FIRE_RATE = 200;
-    private LIVES = 3;
-    private TEXT_MARGIN = 50;
-
-    private nextFire = 0;
-    private score = 0;
-
+    game:ShooterGame;
 
     preload():void {
         super.preload();
@@ -53,7 +67,7 @@ class mainState extends Phaser.State {
         this.physics.startSystem(Phaser.Physics.ARCADE);
 
         if (this.game.device.desktop) {
-            this.cursors = this.input.keyboard.createCursorKeys();
+            this.game.cursors = this.input.keyboard.createCursorKeys();
         } else {
             this.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
             this.scale.pageAlignHorizontally = true;
@@ -87,73 +101,94 @@ class mainState extends Phaser.State {
         var width = this.scale.bounds.width;
         var height = this.scale.bounds.height;
 
-        this.scoreText = this.add.text(this.TEXT_MARGIN, this.TEXT_MARGIN, 'Score: ' + this.score,
+        this.game.scoreText = this.add.text(this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Score: ' + this.game.score,
             {font: "30px Arial", fill: "#ffffff"});
-        this.scoreText.fixedToCamera = true;
-        this.livesText = this.add.text(width - this.TEXT_MARGIN, this.TEXT_MARGIN, 'Lives: ' + this.player.health,
+        this.game.scoreText.fixedToCamera = true;
+        this.game.livesText = this.add.text(width - this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Lives: ' + this.game.player.health,
             {font: "30px Arial", fill: "#ffffff"});
-        this.livesText.anchor.setTo(1, 0);
-        this.livesText.fixedToCamera = true;
+        this.game.livesText.anchor.setTo(1, 0);
+        this.game.livesText.fixedToCamera = true;
 
-        this.stateText = this.add.text(width / 2, height / 2, '', {font: '84px Arial', fill: '#fff'});
-        this.stateText.anchor.setTo(0.5, 0.5);
-        this.stateText.visible = false;
-        this.stateText.fixedToCamera = true;
+        this.game.stateText = this.add.text(width / 2, height / 2, '', {font: '84px Arial', fill: '#fff'});
+        this.game.stateText.anchor.setTo(0.5, 0.5);
+        this.game.stateText.visible = false;
+        this.game.stateText.fixedToCamera = true;
     };
 
     private createExplosions() {
-        this.explosions = this.add.group();
-        this.explosions.createMultiple(20, 'explosion');
+        this.game.explosions = this.add.group();
+        this.game.explosions.createMultiple(20, 'explosion');
 
-        this.explosions.setAll('anchor.x', 0.5);
-        this.explosions.setAll('anchor.y', 0.5);
+        this.game.explosions.setAll('anchor.x', 0.5);
+        this.game.explosions.setAll('anchor.y', 0.5);
 
-        this.explosions.forEach((explosion:Phaser.Sprite) => {
+        this.game.explosions.forEach((explosion:Phaser.Sprite) => {
             explosion.loadTexture(this.rnd.pick(['explosion', 'explosion2', 'explosion3']));
         }, this);
     };
 
     private createWalls() {
-        this.walls = this.tilemap.createLayer('walls');
-        this.walls.x = this.world.centerX;
-        this.walls.y = this.world.centerY;
+        this.game.walls = this.game.tilemap.createLayer('walls');
+        this.game.walls.x = this.world.centerX;
+        this.game.walls.y = this.world.centerY;
 
-        this.walls.resizeWorld();
+        this.game.walls.resizeWorld();
 
-        this.tilemap.setCollisionBetween(1, 195, true, 'walls');
+        this.game.tilemap.setCollisionBetween(1, 195, true, 'walls');
     };
 
     private createBackground() {
-        this.background = this.tilemap.createLayer('background');
-        this.background.x = this.world.centerX;
-        this.background.y = this.world.centerY;
+        this.game.background = this.game.tilemap.createLayer('background');
+        this.game.background.x = this.world.centerX;
+        this.game.background.y = this.world.centerY;
     };
 
     private createTilemap() {
-        this.tilemap = this.game.add.tilemap('tilemap');
-        this.tilemap.addTilesetImage('tilesheet_complete', 'tiles');
+        this.game.tilemap = this.game.add.tilemap('tilemap');
+        this.game.tilemap.addTilesetImage('tilesheet_complete', 'tiles');
 
     };
 
     private createMonsters() {
-        this.monsters = this.add.group();
-        this.monsters.enableBody = true;
-        this.monsters.physicsBodyType = Phaser.Physics.ARCADE;
 
-        this.tilemap.createFromObjects('monsters', 541, 'zombie1', 0, true, false, this.monsters);
+        this.game.monsters = this.add.group();
 
-        this.monsters.setAll('anchor.x', 0.5);
-        this.monsters.setAll('anchor.y', 0.5);
+
+        var factory = new MonsterFactory(this.game);
+
+        for (var i = 0; i < 10; i++) {
+            var monster = factory.generateMonster('MonsterSlow');
+            monster.loadTexture('robot');
+            this.game.add.existing(monster);
+            this.game.monsters.add(monster)
+        }
+
+        for (var i = 0; i < 10; i++) {
+            var monster1 = factory.generateMonster('MonsterFast');
+            monster1.loadTexture('zombie1');
+            this.game.add.existing(monster1);
+            this.game.monsters.add(monster1)
+        }
+
+
+        /*this.game.monsters = this.add.group();
+        this.game.monsters.enableBody = true;
+        this.game.monsters.physicsBodyType = Phaser.Physics.ARCADE;
+
+        this.game.tilemap.createFromObjects('monsters', 541, 'zombie1', 0, true, false, this.game.monsters);
+
+        this.game.monsters.setAll('anchor.x', 0.5);
+        this.game.monsters.setAll('anchor.y', 0.5);
         //this.monsters.setAll('scale.x', 2);
         //this.monsters.setAll('scale.y', 2);
-        this.monsters.setAll('health', this.MONSTER_HEALTH);
-        this.monsters.forEach(this.setRandomAngle, this);
-        this.monsters.forEach((explosion:Phaser.Sprite) => {
+        this.game.monsters.setAll('health', this.game.MONSTER_HEALTH);
+        this.game.monsters.forEach(this.setRandomAngle, this);
+        this.game.monsters.forEach((explosion:Phaser.Sprite) => {
             explosion.loadTexture(this.rnd.pick(['zombie1', 'zombie2', 'robot']));
         }, this);
 
-        this.monsters.setAll('checkWorldBounds', true);
-        this.monsters.callAll('events.onOutOfBounds.add', 'events.onOutOfBounds', this.resetMonster, this);
+        this.game.monsters.setAll('checkWorldBounds', true);
+        this.game.monsters.callAll('events.onOutOfBounds.add', 'events.onOutOfBounds', this.resetMonster, this);*/
     };
 
     private setRandomAngle(monster:Phaser.Sprite) {
@@ -161,48 +196,40 @@ class mainState extends Phaser.State {
     }
 
     private resetMonster(monster:Phaser.Sprite) {
-        monster.rotation = this.physics.arcade.angleBetween(
-            monster,
-            this.player
-        );
+        monster.rotation = this.physics.arcade.angleBetween(monster,this.game.player);
     }
 
     private createBullets() {
-        this.bullets = this.add.group();
-        this.bullets.enableBody = true;
-        this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
-        this.bullets.createMultiple(20, 'bullet');
+        this.game.bullets = this.add.group();
+        this.game.bullets.enableBody = true;
+        this.game.bullets.physicsBodyType = Phaser.Physics.ARCADE;
+        this.game.bullets.createMultiple(20, 'bullet');
 
-        this.bullets.setAll('anchor.x', 0.5);
-        this.bullets.setAll('anchor.y', 0.5);
-        this.bullets.setAll('scale.x', 0.5);
-        this.bullets.setAll('scale.y', 0.5);
-        this.bullets.setAll('outOfBoundsKill', true);
-        this.bullets.setAll('checkWorldBounds', true);
+        this.game.bullets.setAll('anchor.x', 0.5);
+        this.game.bullets.setAll('anchor.y', 0.5);
+        this.game.bullets.setAll('scale.x', 0.5);
+        this.game.bullets.setAll('scale.y', 0.5);
+        this.game.bullets.setAll('outOfBoundsKill', true);
+        this.game.bullets.setAll('checkWorldBounds', true);
     };
 
     private createVirtualJoystick() {
-        this.gamepad = new Gamepads.GamePad(this.game, Gamepads.GamepadType.DOUBLE_STICK);
+        this.game.gamepad = new Gamepads.GamePad(this.game, Gamepads.GamepadType.DOUBLE_STICK);
     };
 
     private setupCamera() {
-        this.camera.follow(this.player);
+        this.camera.follow(this.game.player);
     };
 
     private createPlayer() {
-        this.player = this.add.sprite(this.world.centerX, this.world.centerY, 'player');
-        this.player.anchor.setTo(0.5, 0.5);
-        //this.player.scale.setTo(2, 2);
-        this.player.health = this.LIVES;
-        this.physics.enable(this.player, Phaser.Physics.ARCADE);
+        var player = new Player (this.game, this.world.centerX, this.world.centerY, 'player', 0);
+        this.game.player = this.add.existing(player);
 
-        this.player.body.maxVelocity.setTo(this.PLAYER_MAX_SPEED, this.PLAYER_MAX_SPEED); // x, y
-        this.player.body.collideWorldBounds = true;
-        this.player.body.drag.setTo(this.PLAYER_DRAG, this.PLAYER_DRAG); // x, y
     };
 
     update():void {
         super.update();
+
         this.movePlayer();
         this.moveMonsters();
         if (this.game.device.desktop) {
@@ -213,20 +240,20 @@ class mainState extends Phaser.State {
             this.fireWithRightStick();
         }
 
-        this.physics.arcade.collide(this.player, this.monsters, this.monsterTouchesPlayer, null, this);
-        this.physics.arcade.collide(this.player, this.walls);
-        this.physics.arcade.overlap(this.bullets, this.monsters, this.bulletHitMonster, null, this);
-        this.physics.arcade.collide(this.bullets, this.walls, this.bulletHitWall, null, this);
-        this.physics.arcade.collide(this.walls, this.monsters, this.resetMonster, null, this);
-        this.physics.arcade.collide(this.monsters, this.monsters, this.resetMonster, null, this);
+        this.physics.arcade.collide(this.game.player, this.game.monsters, this.monsterTouchesPlayer, null, this);
+        this.physics.arcade.collide(this.game.player, this.game.walls);
+        this.physics.arcade.overlap(this.game.bullets, this.game.monsters, this.bulletHitMonster, null, this);
+        this.physics.arcade.collide(this.game.bullets, this.game.walls, this.bulletHitWall, null, this);
+        this.physics.arcade.collide(this.game.walls, this.game.monsters, this.resetMonster, null, this);
+        this.physics.arcade.collide(this.game.monsters, this.game.monsters, this.resetMonster, null, this);
     }
 
     rotateWithRightStick() {
-        var speed = this.gamepad.stick2.speed;
+        var speed = this.game.gamepad.stick2.speed;
 
         if (Math.abs(speed.x) + Math.abs(speed.y) > 20) {
-            var rotatePos = new Phaser.Point(this.player.x + speed.x, this.player.y + speed.y);
-            this.player.rotation = this.physics.arcade.angleToXY(this.player, rotatePos.x, rotatePos.y);
+            var rotatePos = new Phaser.Point(this.game.player.x + speed.x, this.game.player.y + speed.y);
+            this.game.player.rotation = this.physics.arcade.angleToXY(this.game.player, rotatePos.x, rotatePos.y);
 
             this.fire();
         }
@@ -241,13 +268,13 @@ class mainState extends Phaser.State {
 
         player.damage(1);
 
-        this.livesText.setText("Lives: " + this.player.health);
+        this.game.livesText.setText("Lives: " + this.game.player.health);
 
         this.blink(player);
 
         if (player.health == 0) {
-            this.stateText.text = " GAME OVER \n Click to restart";
-            this.stateText.visible = true;
+            this.game.stateText.text = " GAME OVER \n Click to restart";
+            this.game.stateText.visible = true;
 
             //the "click to restart" handler
             this.input.onTap.addOnce(this.restart, this);
@@ -273,8 +300,8 @@ class mainState extends Phaser.State {
         if (monster.health > 0) {
             this.blink(monster)
         } else {
-            this.score += 10;
-            this.scoreText.setText("Score: " + this.score);
+            this.game.score += 10;
+            this.game.scoreText.setText("Score: " + this.game.score);
         }
     }
 
@@ -288,11 +315,11 @@ class mainState extends Phaser.State {
     }
 
     private moveMonsters() {
-        this.monsters.forEach(this.advanceStraightAhead, this)
+        this.game.monsters.forEach(this.advanceStraightAhead, this)
     };
 
     private advanceStraightAhead(monster:Phaser.Sprite) {
-        this.physics.arcade.velocityFromAngle(monster.angle, this.MONSTER_SPEED, monster.body.velocity);
+        this.physics.arcade.velocityFromAngle(monster.angle, this.game.MONSTER_SPEED, monster.body.velocity);
     }
 
     private fireWhenButtonClicked() {
@@ -302,45 +329,46 @@ class mainState extends Phaser.State {
     };
 
     private rotatePlayerToPointer() {
-        this.player.rotation = this.physics.arcade.angleToPointer(
-            this.player,
+        this.game.player.rotation = this.physics.arcade.angleToPointer(
+            this.game.player,
             this.input.activePointer
         );
     };
 
     private movePlayer() {
+
         var moveWithKeyboard = function () {
-            if (this.cursors.left.isDown ||
+            if (this.game.cursors.left.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.A)) {
-                this.player.body.acceleration.x = -this.PLAYER_ACCELERATION;
-            } else if (this.cursors.right.isDown ||
+                this.game.player.body.acceleration.x = -this.game.PLAYER_ACCELERATION;
+            } else if (this.game.cursors.right.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.D)) {
-                this.player.body.acceleration.x = this.PLAYER_ACCELERATION;
-            } else if (this.cursors.up.isDown ||
+                this.game.player.body.acceleration.x = this.game.PLAYER_ACCELERATION;
+            } else if (this.game.cursors.up.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.W)) {
-                this.player.body.acceleration.y = -this.PLAYER_ACCELERATION;
-            } else if (this.cursors.down.isDown ||
+                this.game.player.body.acceleration.y = -this.game.PLAYER_ACCELERATION;
+            } else if (this.game.cursors.down.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.S)) {
-                this.player.body.acceleration.y = this.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.y = this.game.PLAYER_ACCELERATION;
             } else {
-                this.player.body.acceleration.x = 0;
-                this.player.body.acceleration.y = 0;
+                this.game.player.body.acceleration.x = 0;
+                this.game.player.body.acceleration.y = 0;
             }
         };
 
         var moveWithVirtualJoystick = function () {
-            if (this.gamepad.stick1.cursors.left) {
-                this.player.body.acceleration.x = -this.PLAYER_ACCELERATION;
+            if (this.game.gamepad.stick1.cursors.left) {
+                this.game.player.body.acceleration.x = -this.game.PLAYER_ACCELERATION;
             }
-            if (this.gamepad.stick1.cursors.right) {
-                this.player.body.acceleration.x = this.PLAYER_ACCELERATION;
-            } else if (this.gamepad.stick1.cursors.up) {
-                this.player.body.acceleration.y = -this.PLAYER_ACCELERATION;
-            } else if (this.gamepad.stick1.cursors.down) {
-                this.player.body.acceleration.y = this.PLAYER_ACCELERATION;
+            if (this.game.gamepad.stick1.cursors.right) {
+                this.game.player.body.acceleration.x = this.game.PLAYER_ACCELERATION;
+            } else if (this.game.gamepad.stick1.cursors.up) {
+                this.game.player.body.acceleration.y = -this.game.PLAYER_ACCELERATION;
+            } else if (this.game.gamepad.stick1.cursors.down) {
+                this.game.player.body.acceleration.y = this.game.PLAYER_ACCELERATION;
             } else {
-                this.player.body.acceleration.x = 0;
-                this.player.body.acceleration.y = 0;
+                this.game.player.body.acceleration.x = 0;
+                this.game.player.body.acceleration.y = 0;
             }
         };
         if (this.game.device.desktop) {
@@ -351,30 +379,30 @@ class mainState extends Phaser.State {
     };
 
     fire():void {
-        if (this.time.now > this.nextFire) {
-            var bullet = this.bullets.getFirstDead();
+        if (this.time.now > this.game.nextFire) {
+            var bullet = this.game.bullets.getFirstDead();
             if (bullet) {
-                var length = this.player.width * 0.5 + 20;
-                var x = this.player.x + (Math.cos(this.player.rotation) * length);
-                var y = this.player.y + (Math.sin(this.player.rotation) * length);
+                var length = this.game.player.width * 0.5 + 20;
+                var x = this.game.player.x + (Math.cos(this.game.player.rotation) * length);
+                var y = this.game.player.y + (Math.sin(this.game.player.rotation) * length);
 
                 bullet.reset(x, y);
 
                 this.explosion(x, y);
 
-                bullet.angle = this.player.angle;
+                bullet.angle = this.game.player.angle;
 
-                var velocity = this.physics.arcade.velocityFromRotation(bullet.rotation, this.BULLET_SPEED);
+                var velocity = this.physics.arcade.velocityFromRotation(bullet.rotation, this.game.BULLET_SPEED);
 
                 bullet.body.velocity.setTo(velocity.x, velocity.y);
 
-                this.nextFire = this.time.now + this.FIRE_RATE;
+                this.game.nextFire = this.time.now + this.game.FIRE_RATE;
             }
         }
     }
 
     explosion(x:number, y:number):void {
-        var explosion:Phaser.Sprite = this.explosions.getFirstDead();
+        var explosion:Phaser.Sprite = this.game.explosions.getFirstDead();
         if (explosion) {
             explosion.reset(
                 x - this.rnd.integerInRange(0, 5) + this.rnd.integerInRange(0, 5),
@@ -395,14 +423,128 @@ class mainState extends Phaser.State {
     }
 }
 
-class ShooterGame extends Phaser.Game {
-    constructor() {
-        super(800, 480, Phaser.CANVAS, 'gameDiv');
-        this.state.add('main', mainState);
-        this.state.start('main');
+class Player extends Phaser.Sprite {
+
+    game:ShooterGame;
+    x:number;
+    y:number;
+    health:number;
+    PLAYER_MAX_SPEED = 400;
+    PLAYER_DRAG = 600;
+    puntuacion:number;
+
+    constructor(game:ShooterGame, x:number, y:number, key:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture, frame:string|number)  {
+        super(game, x, y, key, frame);
+
+        this.game = game;
+
+        //Posicion del player
+        this.x = x;
+        this.y = y;
+        this.key=key;
+        this.anchor.setTo(0.5, 0.5);
+
+        this.game.physics.enable(this, Phaser.Physics.ARCADE);                        //Cargar fisicas
+        this.body.collideWorldBounds = true;                                         //Colisionar con el mundo
+        this.body.maxVelocity.setTo(this.PLAYER_MAX_SPEED, this.PLAYER_MAX_SPEED);  //Darle velocidad en los dos ejes
+        this.body.drag.setTo(this.PLAYER_DRAG, this.PLAYER_DRAG);                  //Darle deslizamiento en los dos ejes
+
+        //Vidas del player
+        this.health = 3
+    }
+
+    notificarPuntuacion():void {
+        this.game.scoreText.setText("Score: " + this.game.score);
+    }
+
+    getPuntuacion():number{
+        return this.puntuacion;
+    }
+
+}
+
+abstract class Monster extends Phaser.Sprite {
+
+    game:ShooterGame;
+    speed:number;
+    health:number;
+    id:String;
+
+    constructor(game:ShooterGame, x:number, y:number, key:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture, frame:string|number)  {
+        super(game, x, y, key, frame);
+
+        this.game = game;
+        this.game.physics.enable(this, Phaser.Physics.ARCADE);
+        this.body.enableBody = true;
+    }
+
+    update():void  {
+        super.update();
+
+        this.game.physics.arcade.velocityFromAngle(this.angle, this.speed, this.body.velocity);
+        this.events.onOutOfBounds.add(this.resetMonster, this);
+    }
+
+    resetMonster(monster:Phaser.Sprite) {
+        monster.rotation = this.game.physics.arcade.angleBetween(monster, this.game.player);
     }
 }
 
+class MonsterSlow extends Monster {
+
+    constructor(game:ShooterGame, key:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture)  {
+        super(game, 150, 150,key, 0);
+
+        this.anchor.setTo(0.5,0.5);
+        this.angle = game.rnd.angle();
+        this.id = "MonsterSlow";
+        this.health = 4;
+        this.speed = 100;
+    }
+
+    update():void {
+        super.update();
+    }
+}
+
+class MonsterFast extends Monster {
+
+    constructor(game:ShooterGame, key:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture)  {
+        super(game, 150, 150,key, 0);
+
+        this.anchor.setTo(0.5,0.5);
+        this.angle = game.rnd.angle();
+        this.id = "MonsterFast";
+        this.health = 2;
+        this.speed = 200;
+    }
+
+    update():void {
+        super.update();
+    }
+}
+
+class MonsterFactory {
+
+    game:ShooterGame;
+
+    constructor(game:ShooterGame) {
+        this.game = game;
+    }
+
+    generateMonster(id:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture):Monster {
+
+        if (id =='MonsterSlow'){
+            return new MonsterSlow(this.game, id);
+        }
+        else if (id =='MonsterFast'){
+            return new MonsterFast(this.game, id);
+        }
+    }
+
+}
+
+
 window.onload = () => {
-    var game = new ShooterGame();
+    new ShooterGame();
 };
