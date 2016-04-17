@@ -20,14 +20,14 @@ class ShooterGame extends Phaser.Game {
     cursors:Phaser.CursorKeys;
     gamepad:Gamepads.GamePad;
 
-    PLAYER_ACCELERATION = 500;
+
     MONSTER_SPEED = 100;
     BULLET_SPEED = 800;
     FIRE_RATE = 200;
     TEXT_MARGIN = 50;
 
     nextFire = 0;
-    score = 0;
+    //score = 0;
 
     constructor() {
         super(800, 480, Phaser.CANVAS, 'gameDiv');
@@ -102,9 +102,10 @@ class mainState extends Phaser.State {
         var width = this.scale.bounds.width;
         var height = this.scale.bounds.height;
 
-        this.game.scoreText = this.add.text(this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Score: ' + this.game.score,
+        this.game.scoreText = this.add.text(this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Score: ' + this.game.player.score,
             {font: "30px Arial", fill: "#ffffff"});
         this.game.scoreText.fixedToCamera = true;
+
         this.game.livesText = this.add.text(width - this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Lives: ' + this.game.player.health,
             {font: "30px Arial", fill: "#ffffff"});
         this.game.livesText.anchor.setTo(1, 0);
@@ -274,8 +275,8 @@ class mainState extends Phaser.State {
         if (monster.health > 0) {
             this.blink(monster)
         } else {
-            this.game.score += 10;
-            this.game.scoreText.setText("Score: " + this.game.score);
+            this.game.player.score += 10;
+            this.game.scoreText.setText("Score: " + this.game.player.score);
         }
     }
 
@@ -314,16 +315,16 @@ class mainState extends Phaser.State {
         var moveWithKeyboard = function () {
             if (this.game.cursors.left.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.A)) {
-                this.game.player.body.acceleration.x = -this.game.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.x = -this.game.player.PLAYER_ACCELERATION;
             } else if (this.game.cursors.right.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.D)) {
-                this.game.player.body.acceleration.x = this.game.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.x = this.game.player.PLAYER_ACCELERATION;
             } else if (this.game.cursors.up.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.W)) {
-                this.game.player.body.acceleration.y = -this.game.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.y = -this.game.player.PLAYER_ACCELERATION;
             } else if (this.game.cursors.down.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.S)) {
-                this.game.player.body.acceleration.y = this.game.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.y = this.game.player.PLAYER_ACCELERATION;
             } else {
                 this.game.player.body.acceleration.x = 0;
                 this.game.player.body.acceleration.y = 0;
@@ -397,7 +398,12 @@ class mainState extends Phaser.State {
     }
 }
 
-class Player extends Phaser.Sprite {
+interface Observer{
+    suscribe(displayStats);
+    notify();
+}
+
+class Player extends Phaser.Sprite implements  Observer{
 
     game:ShooterGame;
     x:number;
@@ -405,7 +411,9 @@ class Player extends Phaser.Sprite {
     health:number;
     PLAYER_MAX_SPEED = 400;
     PLAYER_DRAG = 600;
+    PLAYER_ACCELERATION = 500;
     score:number;
+    displayStats:ScorePublisher;
 
     constructor(game:ShooterGame, x:number, y:number, key:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture, frame:string|number)  {
         super(game, x, y, key, frame);
@@ -426,11 +434,51 @@ class Player extends Phaser.Sprite {
         //Vidas del player
         this.health = 3
         this.score = 0;
+        this.displayStats = new ScorePublisher(this);
     }
+
+    suscribe(displayStats:ScorePublisher){
+        this.displayStats = displayStats;
+        console.log("en el subscribe:" +this.getScore());
+    }
+
+    notify(){
+        this.displayStats.updateStats(this.getScore());
+    }
+
+    getScore():number{
+        return this.score;
+    }
+
 }
 
+interface Publisher{
+    updateStats(points:number);
+}
+
+class ScorePublisher implements Publisher{
+    game:ShooterGame;
+    score:number;
+    player:Player;
 
 
+    constructor(player:Player){
+        this.player = player;
+        this.player.suscribe(this);
+    }
+
+    public displayScore(){
+        this.game.scoreText = this.game.add.text(this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Score: ' + this.score, {
+            font: "30px Arial",
+            fill: "#ffffff"
+        });
+    }
+
+    updateStats(score:number){
+        this.score = score;
+        this.displayScore();
+    }
+}
 
 abstract class Monster extends Phaser.Sprite {
 

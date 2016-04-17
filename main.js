@@ -959,15 +959,14 @@ var Gamepads;
 var Sprite = Phaser.Sprite;
 var ShooterGame = (function (_super) {
     __extends(ShooterGame, _super);
+    //score = 0;
     function ShooterGame() {
         _super.call(this, 800, 480, Phaser.CANVAS, 'gameDiv');
-        this.PLAYER_ACCELERATION = 500;
         this.MONSTER_SPEED = 100;
         this.BULLET_SPEED = 800;
         this.FIRE_RATE = 200;
         this.TEXT_MARGIN = 50;
         this.nextFire = 0;
-        this.score = 0;
         this.state.add('main', mainState);
         this.state.start('main');
     }
@@ -1029,7 +1028,7 @@ var mainState = (function (_super) {
     mainState.prototype.createTexts = function () {
         var width = this.scale.bounds.width;
         var height = this.scale.bounds.height;
-        this.game.scoreText = this.add.text(this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Score: ' + this.game.score, { font: "30px Arial", fill: "#ffffff" });
+        this.game.scoreText = this.add.text(this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Score: ' + this.game.player.score, { font: "30px Arial", fill: "#ffffff" });
         this.game.scoreText.fixedToCamera = true;
         this.game.livesText = this.add.text(width - this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Lives: ' + this.game.player.health, { font: "30px Arial", fill: "#ffffff" });
         this.game.livesText.anchor.setTo(1, 0);
@@ -1171,8 +1170,8 @@ var mainState = (function (_super) {
             this.blink(monster);
         }
         else {
-            this.game.score += 10;
-            this.game.scoreText.setText("Score: " + this.game.score);
+            this.game.player.score += 10;
+            this.game.scoreText.setText("Score: " + this.game.player.score);
         }
     };
     mainState.prototype.blink = function (sprite) {
@@ -1203,19 +1202,19 @@ var mainState = (function (_super) {
         var moveWithKeyboard = function () {
             if (this.game.cursors.left.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.A)) {
-                this.game.player.body.acceleration.x = -this.game.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.x = -this.game.player.PLAYER_ACCELERATION;
             }
             else if (this.game.cursors.right.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.D)) {
-                this.game.player.body.acceleration.x = this.game.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.x = this.game.player.PLAYER_ACCELERATION;
             }
             else if (this.game.cursors.up.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.W)) {
-                this.game.player.body.acceleration.y = -this.game.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.y = -this.game.player.PLAYER_ACCELERATION;
             }
             else if (this.game.cursors.down.isDown ||
                 this.input.keyboard.isDown(Phaser.Keyboard.S)) {
-                this.game.player.body.acceleration.y = this.game.PLAYER_ACCELERATION;
+                this.game.player.body.acceleration.y = this.game.player.PLAYER_ACCELERATION;
             }
             else {
                 this.game.player.body.acceleration.x = 0;
@@ -1287,6 +1286,7 @@ var Player = (function (_super) {
         _super.call(this, game, x, y, key, frame);
         this.PLAYER_MAX_SPEED = 400;
         this.PLAYER_DRAG = 600;
+        this.PLAYER_ACCELERATION = 500;
         this.game = game;
         //Posicion del player
         this.x = x;
@@ -1300,9 +1300,37 @@ var Player = (function (_super) {
         //Vidas del player
         this.health = 3;
         this.score = 0;
+        this.displayStats = new ScorePublisher(this);
     }
+    Player.prototype.suscribe = function (displayStats) {
+        this.displayStats = displayStats;
+        console.log("en el subscribe:" + this.getScore());
+    };
+    Player.prototype.notify = function () {
+        this.displayStats.updateStats(this.getScore());
+    };
+    Player.prototype.getScore = function () {
+        return this.score;
+    };
     return Player;
 })(Phaser.Sprite);
+var ScorePublisher = (function () {
+    function ScorePublisher(player) {
+        this.player = player;
+        this.player.suscribe(this);
+    }
+    ScorePublisher.prototype.displayScore = function () {
+        this.game.scoreText = this.game.add.text(this.game.TEXT_MARGIN, this.game.TEXT_MARGIN, 'Score: ' + this.score, {
+            font: "30px Arial",
+            fill: "#ffffff"
+        });
+    };
+    ScorePublisher.prototype.updateStats = function (score) {
+        this.score = score;
+        this.displayScore();
+    };
+    return ScorePublisher;
+})();
 var Monster = (function (_super) {
     __extends(Monster, _super);
     function Monster(game, x, y, key, frame) {
