@@ -153,47 +153,22 @@ class mainState extends Phaser.State {
 
         this.game.monsters = this.add.group();
 
-
         var factory = new MonsterFactory(this.game);
 
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < 15; i++) {
             var monster = factory.generateMonster('MonsterSlow');
             monster.loadTexture('robot');
             this.game.add.existing(monster);
             this.game.monsters.add(monster)
         }
 
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < 15; i++) {
             var monster1 = factory.generateMonster('MonsterFast');
             monster1.loadTexture('zombie1');
             this.game.add.existing(monster1);
             this.game.monsters.add(monster1)
         }
-
-
-        /*this.game.monsters = this.add.group();
-        this.game.monsters.enableBody = true;
-        this.game.monsters.physicsBodyType = Phaser.Physics.ARCADE;
-
-        this.game.tilemap.createFromObjects('monsters', 541, 'zombie1', 0, true, false, this.game.monsters);
-
-        this.game.monsters.setAll('anchor.x', 0.5);
-        this.game.monsters.setAll('anchor.y', 0.5);
-        //this.monsters.setAll('scale.x', 2);
-        //this.monsters.setAll('scale.y', 2);
-        this.game.monsters.setAll('health', this.game.MONSTER_HEALTH);
-        this.game.monsters.forEach(this.setRandomAngle, this);
-        this.game.monsters.forEach((explosion:Phaser.Sprite) => {
-            explosion.loadTexture(this.rnd.pick(['zombie1', 'zombie2', 'robot']));
-        }, this);
-
-        this.game.monsters.setAll('checkWorldBounds', true);
-        this.game.monsters.callAll('events.onOutOfBounds.add', 'events.onOutOfBounds', this.resetMonster, this);*/
     };
-
-    private setRandomAngle(monster:Phaser.Sprite) {
-        monster.angle = this.rnd.angle();
-    }
 
     private resetMonster(monster:Phaser.Sprite) {
         monster.rotation = this.physics.arcade.angleBetween(monster,this.game.player);
@@ -460,8 +435,9 @@ class Player extends Phaser.Sprite {
     getPuntuacion():number{
         return this.puntuacion;
     }
-
 }
+
+
 
 abstract class Monster extends Phaser.Sprite {
 
@@ -541,8 +517,9 @@ class MonsterFactory {
             return new MonsterFast(this.game, id);
         }
     }
-
 }
+
+
 
 
 window.onload = () => {
