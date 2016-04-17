@@ -962,9 +962,7 @@ var ShooterGame = (function (_super) {
     function ShooterGame() {
         _super.call(this, 800, 480, Phaser.CANVAS, 'gameDiv');
         this.PLAYER_ACCELERATION = 500;
-        //MONSTER_HEALTH = 3;
         this.MONSTER_SPEED = 100;
-        //LIVES = 3;
         this.BULLET_SPEED = 800;
         this.FIRE_RATE = 200;
         this.TEXT_MARGIN = 50;
@@ -975,6 +973,9 @@ var ShooterGame = (function (_super) {
     }
     return ShooterGame;
 })(Phaser.Game);
+window.onload = function () {
+    new ShooterGame();
+};
 var mainState = (function (_super) {
     __extends(mainState, _super);
     function mainState() {
@@ -1073,14 +1074,12 @@ var mainState = (function (_super) {
         this.game.monsters = this.add.group();
         var factory = new MonsterFactory(this.game);
         for (var i = 0; i < 15; i++) {
-            var monster = factory.generateMonster('MonsterSlow');
-            monster.loadTexture('robot');
+            var monster = factory.generateMonster('zombie1');
             this.game.add.existing(monster);
             this.game.monsters.add(monster);
         }
         for (var i = 0; i < 15; i++) {
-            var monster1 = factory.generateMonster('MonsterFast');
-            monster1.loadTexture('zombie1');
+            var monster1 = factory.generateMonster('robot');
             this.game.add.existing(monster1);
             this.game.monsters.add(monster1);
         }
@@ -1300,13 +1299,8 @@ var Player = (function (_super) {
         this.body.drag.setTo(this.PLAYER_DRAG, this.PLAYER_DRAG); //Darle deslizamiento en los dos ejes
         //Vidas del player
         this.health = 3;
+        this.score = 0;
     }
-    Player.prototype.notificarPuntuacion = function () {
-        this.game.scoreText.setText("Score: " + this.game.score);
-    };
-    Player.prototype.getPuntuacion = function () {
-        return this.puntuacion;
-    };
     return Player;
 })(Phaser.Sprite);
 var Monster = (function (_super) {
@@ -1316,6 +1310,7 @@ var Monster = (function (_super) {
         this.game = game;
         this.game.physics.enable(this, Phaser.Physics.ARCADE);
         this.body.enableBody = true;
+        this.angle = game.rnd.angle();
     }
     Monster.prototype.update = function () {
         _super.prototype.update.call(this);
@@ -1332,8 +1327,6 @@ var MonsterSlow = (function (_super) {
     function MonsterSlow(game, key) {
         _super.call(this, game, 150, 150, key, 0);
         this.anchor.setTo(0.5, 0.5);
-        this.angle = game.rnd.angle();
-        this.id = "MonsterSlow";
         this.health = 4;
         this.speed = 100;
     }
@@ -1348,7 +1341,6 @@ var MonsterFast = (function (_super) {
         _super.call(this, game, 150, 150, key, 0);
         this.anchor.setTo(0.5, 0.5);
         this.angle = game.rnd.angle();
-        this.id = "MonsterFast";
         this.health = 2;
         this.speed = 200;
     }
@@ -1361,17 +1353,14 @@ var MonsterFactory = (function () {
     function MonsterFactory(game) {
         this.game = game;
     }
-    MonsterFactory.prototype.generateMonster = function (id) {
-        if (id == 'MonsterSlow') {
-            return new MonsterSlow(this.game, id);
+    MonsterFactory.prototype.generateMonster = function (key) {
+        if (key == 'robot') {
+            return new MonsterSlow(this.game, key);
         }
-        else if (id == 'MonsterFast') {
-            return new MonsterFast(this.game, id);
+        else if (key == 'zombie1') {
+            return new MonsterFast(this.game, key);
         }
     };
     return MonsterFactory;
 })();
-window.onload = function () {
-    new ShooterGame();
-};
 //# sourceMappingURL=main.js.map

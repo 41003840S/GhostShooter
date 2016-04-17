@@ -5,14 +5,13 @@ import Sprite = Phaser.Sprite;
 class ShooterGame extends Phaser.Game {
 
     player:Player;
-    //player:Phaser.Sprite;
-    tilemap:Phaser.Tilemap;
-    background:Phaser.TilemapLayer;
-    walls:Phaser.TilemapLayer;
-
     monsters:Phaser.Group;
     explosions:Phaser.Group;
     bullets:Phaser.Group;
+
+    tilemap:Phaser.Tilemap;
+    background:Phaser.TilemapLayer;
+    walls:Phaser.TilemapLayer;
 
     scoreText:Phaser.Text;
     livesText:Phaser.Text;
@@ -22,9 +21,7 @@ class ShooterGame extends Phaser.Game {
     gamepad:Gamepads.GamePad;
 
     PLAYER_ACCELERATION = 500;
-    //MONSTER_HEALTH = 3;
     MONSTER_SPEED = 100;
-    //LIVES = 3;
     BULLET_SPEED = 800;
     FIRE_RATE = 200;
     TEXT_MARGIN = 50;
@@ -38,6 +35,10 @@ class ShooterGame extends Phaser.Game {
         this.state.start('main');
     }
 }
+
+window.onload = () => {
+    new ShooterGame();
+};
 
 
 class mainState extends Phaser.State {
@@ -156,15 +157,13 @@ class mainState extends Phaser.State {
         var factory = new MonsterFactory(this.game);
 
         for (var i = 0; i < 15; i++) {
-            var monster = factory.generateMonster('MonsterSlow');
-            monster.loadTexture('robot');
+            var monster = factory.generateMonster('zombie1');
             this.game.add.existing(monster);
             this.game.monsters.add(monster)
         }
 
         for (var i = 0; i < 15; i++) {
-            var monster1 = factory.generateMonster('MonsterFast');
-            monster1.loadTexture('zombie1');
+            var monster1 = factory.generateMonster('robot');
             this.game.add.existing(monster1);
             this.game.monsters.add(monster1)
         }
@@ -406,7 +405,7 @@ class Player extends Phaser.Sprite {
     health:number;
     PLAYER_MAX_SPEED = 400;
     PLAYER_DRAG = 600;
-    puntuacion:number;
+    score:number;
 
     constructor(game:ShooterGame, x:number, y:number, key:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture, frame:string|number)  {
         super(game, x, y, key, frame);
@@ -426,16 +425,10 @@ class Player extends Phaser.Sprite {
 
         //Vidas del player
         this.health = 3
-    }
-
-    notificarPuntuacion():void {
-        this.game.scoreText.setText("Score: " + this.game.score);
-    }
-
-    getPuntuacion():number{
-        return this.puntuacion;
+        this.score = 0;
     }
 }
+
 
 
 
@@ -444,7 +437,6 @@ abstract class Monster extends Phaser.Sprite {
     game:ShooterGame;
     speed:number;
     health:number;
-    id:String;
 
     constructor(game:ShooterGame, x:number, y:number, key:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture, frame:string|number)  {
         super(game, x, y, key, frame);
@@ -452,6 +444,7 @@ abstract class Monster extends Phaser.Sprite {
         this.game = game;
         this.game.physics.enable(this, Phaser.Physics.ARCADE);
         this.body.enableBody = true;
+        this.angle = game.rnd.angle();
     }
 
     update():void  {
@@ -472,8 +465,6 @@ class MonsterSlow extends Monster {
         super(game, 150, 150,key, 0);
 
         this.anchor.setTo(0.5,0.5);
-        this.angle = game.rnd.angle();
-        this.id = "MonsterSlow";
         this.health = 4;
         this.speed = 100;
     }
@@ -490,7 +481,6 @@ class MonsterFast extends Monster {
 
         this.anchor.setTo(0.5,0.5);
         this.angle = game.rnd.angle();
-        this.id = "MonsterFast";
         this.health = 2;
         this.speed = 200;
     }
@@ -508,20 +498,13 @@ class MonsterFactory {
         this.game = game;
     }
 
-    generateMonster(id:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture):Monster {
+    generateMonster(key:string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture):Monster {
 
-        if (id =='MonsterSlow'){
-            return new MonsterSlow(this.game, id);
+        if (key =='robot'){
+            return new MonsterSlow(this.game, key);
         }
-        else if (id =='MonsterFast'){
-            return new MonsterFast(this.game, id);
+        else if (key =='zombie1'){
+            return new MonsterFast(this.game, key);
         }
     }
 }
-
-
-
-
-window.onload = () => {
-    new ShooterGame();
-};
